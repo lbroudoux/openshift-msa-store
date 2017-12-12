@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd        http://camel.apache.org/schema/spring       http://camel.apache.org/schema/spring/camel-spring.xsd">
+   <!-- Camel Routes -->
+   <camelContext id="camel" xmlns="http://camel.apache.org/schema/spring">
+      <!--
+          The amq component ensures to use the broker in the kubernetes cluster.
+        -->
+      <route id="shipping-in">
+         <from id="_from1" uri="amq:queue:shipping"/>
+         <log id="invocation" message="Shipping message received!"/>
+         <log id="invocation body" message="Processing shipping order: ${body}"/>
+      </route>
+   </camelContext>
+</beans>
