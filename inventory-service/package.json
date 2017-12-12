@@ -1,0 +1,28 @@
+{
+  "name": "inventory-service",
+  "version": "0.1.0",
+  "description": "MSA Inventory Service",
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Laurent Broudoux",
+    "url": "http://github.com/lbroudoux"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/microcks/microcks-postman-runtime.git"
+  },
+  "dependencies": {
+    "body-parser": "1.17.2",
+    "express": "4.15.3",
+    "jaeger-client": "3.7.0",
+    "opentracing": "0.14.1",
+    "winston": "2.3.1"
+  },
+  "scripts": {
+    "start": "node app.js"
+  },
+  "keywords": [
+    "msa",
+    "tracing"
+  ]
+}
