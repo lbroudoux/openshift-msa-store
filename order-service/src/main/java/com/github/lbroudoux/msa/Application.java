@@ -57,7 +57,7 @@ public class Application extends RouteBuilder {
 			.post("/order")
 				.type(Order.class)
 				.to("direct:order");
-		
+
 		from("direct:order").routeId("manageOrder")
 			.log("Order request processing")
 			.log("Received Order body: ${body}")
@@ -74,18 +74,18 @@ public class Application extends RouteBuilder {
 					.to("direct:sendShippingOrder")
 				.otherwise()
 					.to("direct:returnUnavailable");
-		
+
 		from("direct:sendShippingOrder").routeId("sendShippingOrder")
 			.log("Sending shipping order to queue")
 			// Restore order before serializing it.
 			.setBody(exchangeProperty("order"))
 			.marshal().json(JsonLibrary.Jackson)
-			.to("amq:queue:shipping")
+			.to("amq:queue:shipping?exchangePattern=InOnly")
 			.removeHeaders("JMS*")
 			.setHeader(Exchange.CONTENT_TYPE, constant("text/plain"))
 			.setHeader(Exchange.HTTP_RESPONSE_CODE, constant(200))
 			.setBody().constant("AVAILABLE");
-		
+
 		from("direct:returnUnavailable").routeId("returnUnavailable")
 			.log("Product is not available, returning error")
 			.setHeader(Exchange.CONTENT_TYPE, constant("text/plain"))

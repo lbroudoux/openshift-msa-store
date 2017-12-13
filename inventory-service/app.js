@@ -3,8 +3,8 @@
  */
 'use strict';
 
-// Set default server port to 3000
-var port = process.env.PORT || 3000;
+// Set default server port to 8080
+var port = process.env.PORT || 8080;
 
 const express = require('express');
 const winston = require('winston');
@@ -24,7 +24,7 @@ winston.level = process.env.LOG_LEVEL || 'debug';
 var jaegerHost = process.env.JAEGER_SERVER_HOSTNAME || 'localhost';
 var jaegerPort = process.env.JAEGER_SERVER_PORT || 6832;
 var config = {
-  'serviceName': 'msa-inventory-service',
+  'serviceName': 'inventory-service',
   'reporter': {
     'logSpans': true,
     'agentHost': jaegerHost,
@@ -38,7 +38,7 @@ var config = {
 };
 var options = {
   'tags': {
-    'msa-inventory-service': '0.1.0'
+    'inventory-service': '0.1.0'
   },
   'logger': winston
 };
@@ -67,11 +67,16 @@ app.get('/checkAvailable/:productId', function (req, res) {
   // Process request.
   if (req.params.productId === "1") {
     span.setTag(Tags.HTTP_STATUS_CODE, 200);
-    span.log({'event': 'request_end'});
+    span.log({'event': 'Product is available'});
+    var waitTill = new Date(new Date().getTime() + 66);
+    while (waitTill > new Date()) {}
     span.finish();
     res.status(200).send('Available product found in Inventory');
   } else {
     span.setTag(Tags.HTTP_STATUS_CODE, 404);
+    span.log({'event': 'Product is not available'});
+    var waitTill = new Date(new Date().getTime() + 77);
+    while (waitTill > new Date()) {}
     span.finish();
     res.status(404).send('No available product found in Inventoty');
   }

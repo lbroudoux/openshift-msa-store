@@ -1,4 +1,6 @@
 spec:
+  port:
+    targetPort: http
   to:
     kind: Service
     name: order-service

@@ -14,4 +14,6 @@ spec:
           - name: ACTIVEMQ_SERVICE_NAME
             value: broker-amq-tcp
           - name: JAEGER_SERVER_HOSTNAME
-            value: jaeger-agent.jaeger-infra.svc.cluster.local
+            value: jaeger-agent.cockpit.svc.cluster.local
+          - name: JAVA_OPTIONS
+            value: -javaagent:agent/jmx_prometheus_javaagent-0.10.jar=9779:agent/config.yml

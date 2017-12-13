@@ -1,0 +1,252 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+  	<title>MSA Store Demo</title>
+
+    <link rel="stylesheet" href="css/bootstrap.css">
+    <link rel="stylesheet" href="css/main.css">
+  </head>
+  <body>
+    <nav class="navbar navbar-default">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar-menu">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">
+            <h1 class="logo">
+              <img alt="Brand" src="images/icon-store.png" height="42" width="42"/>
+            </h1>
+          </a>
+        </div>
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+          <ul class="nav navbar-nav" style="padding-left: 50px">
+            <li><h3 style="width: 350px">MSA Store Demo</h3></li>
+          </ul>
+          <div class="navbar-form navbar-right" role="search" style="padding-top: 5px">
+            <div class="form-group">
+              <input id="shop_host" type="text" class="form-control" placeholder="SHOP_HOST">
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+    <div class="container-fluid">
+      <div class="jumbotron">
+        <h2>Hello MSA Store on OpenShift !</h2>
+    	  <p>This demo is to demonstrate simple Store on OpenShift using microservices architecture</p>
+    	</div>
+      <div class="row">
+        <div class="col-md-7">
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <h2 class="panel-title"><img src="images/basket.png" height="28" width="28"> Shopping Cart</h2>
+            </div>
+            <div class="row">
+              <div class="col-md-7">
+                <div class="panel-body">
+                  <div class="form-horizontal">
+                    <div class="form-group">
+                      <label for="firstname" class="col-lg-3 control-label">Product</label>
+                      <div class="col-lg-6">
+                        <select class="form-control" id="product" name="product">
+                            <option value="0">-- Pick an item --</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label for="quantity" class="col-lg-3 control-label">Quantity</label>
+                      <div class="col-lg-6">
+                        <input type="text" class="form-control" id="quantity" name="quantity" placeholder="1">
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label for="price" class="col-lg-3 control-label">Price</label>
+                      <div class="col-lg-6">
+                        <div class="input-group">
+                          <div class="input-group-addon">€</div>
+                          <input type="text" class="form-control" id="price" name="price" placeholder="0" disabled>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label for="total" class="col-lg-3 control-label">Total</label>
+                      <div class="col-lg-6">
+                        <div class="input-group">
+                          <div class="input-group-addon">€</div>
+                          <input type="text" class="form-control" id="total" name="total" placeholder="0" disabled>
+                        </div>
+                      </div>
+                    </div>
+                    <br/><br/>
+                    <div class="form-group">
+                      <div class="col-lg-10 col-lg-offset-4">
+                        <button type="reset" class="btn btn-default">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="checkoutButton">Checkout</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <img id="productImg" class="img-rounded">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-5">
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <h3 class="panel-title">Evenements</h3>
+            </div>
+            <div class="panel-body">
+              <p class="text-right"><button id="clearEvents" type="button" class="btn btn-default">Clear</button></p>
+              <div id="eventMsgDiv">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="js/jquery.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script>
+    var SHOP_HOST = "order-service-msa-store.192.168.99.100.nip.io";
+    var MAX_MSG_DISPLAY = 8;
+
+    var products = [
+      {'id': 1, 'label': 'Shadown Man T-Shirt', 'img': 'images/shadowman.jpeg', 'price': 5.5},
+      {'id': 2, 'label': 'Running everything T-Shirt', 'img': 'images/everything.jpeg', 'price': 7.0},
+      {'id': 3, 'label': 'Fedora T-Shirt', 'img': 'images/fedora.jpeg', 'price': 10.5}
+    ];
+    var msgsocket = null;
+    var eventMsgArray = [];
+
+    $("#shop_host").blur(function(){
+      var value = $("#shop_host").val();
+      if (value === null || value === "") {
+        $("#shop_host").val(SHOP_HOST);
+      } else {
+        SHOP_HOST = value;
+      }
+    });
+
+    $("#product").change(function() {
+      var value = $(this).val();
+      if (value > 0) {
+        var product = products[value - 1];
+        $("#productImg").attr("src", product.img);
+        $("#quantity").val(1);
+        $("#price").val(product.price);
+        $("#total").val(product.price);
+      } else {
+        $("#productImg").attr("src", null);
+        $("#quantity").val(1);
+        $("#price").val(0);
+        $("#total").val(0);
+      }
+    });
+
+    $("#quantity").change(function() {
+      var quantity = $(this).val();
+      var productVal = $("#product").val();
+      if (productVal > 0) {
+        var product = products[productVal - 1];
+        $("#total").val(quantity * product.price);
+      }
+    });
+
+    $("#checkoutButton").click(function(){
+      var productVal = $("#product").val();
+      if (productVal > 0) {
+        var order = {'id': (Math.floor(Math.random() * 6) + 1)};
+        order.quantity = $("#quantity").val();
+        order.price = $("#total").val();
+        order.product = {};
+        order.product.id = products[productVal - 1].id;
+        order.product.label = products[productVal - 1].label;
+
+        $.ajax({
+          type: "POST",
+          url: "http://"+SHOP_HOST+"/api/shop/order",
+          dataType: 'json',
+          contentType: 'application/json',
+          data: JSON.stringify(order),
+        })
+        .done(function() {
+    		})
+    		.fail(function(result) {
+    		})
+    		.always(function(result) {
+          console.log('In always: ' + JSON.stringify(result));
+          if (result != null) {
+            if (result.status === 200) {
+              pushEventMsg("Product is available, order is recorded.", 'info');
+            } else if (result.status === 404) {
+              pushEventMsg("Sorry but product is not available ...", 'error');
+            }
+          }
+    		});
+
+      }
+    });
+
+    $("#clearEvents").click(function(){
+      eventMsgArray = [];
+      $('#eventMsgDiv').html("");
+    });
+
+    $(document).ready(function() {
+      populateProducts();
+      if (!("WebSocket" in window)){
+    		$('#chatLog, input, button, #examples').fadeOut("fast");
+    		$('<p>Oh no, you need a browser that supports WebSockets. How about <a href="http://www.google.com/chrome">Google Chrome</a>?</p>').appendTo('#container');
+    	} else {
+        connectEvents();
+      }
+    });
+
+    function populateProducts() {
+      $.each(products, function (i, item) {
+        $('#product').append($('<option>', {
+            value: item.id,
+            text : item.label
+        }));
+      });
+    }
+    function connectEvents() {
+
+    }
+
+    function pushEventMsg(msg, level) {
+      eventMsgArray.push(createEventMsg(msg, level));
+      if (eventMsgArray.length > MAX_MSG_DISPLAY){
+        eventMsgArray.shift();
+      }
+      var msgContent = "";
+      for (i = 0; i < eventMsgArray.length; i++) {
+        msgContent += eventMsgArray[i];
+      }
+      $('#eventMsgDiv').html(msgContent);
+    }
+    function createEventMsg(msg, level){
+      var msgContent = '<div class="alert alert-dismissible ';
+      if (level && level === 'info') {
+        msgContent += ' alert-info">';
+      } else if (level && level === 'error') {
+        msgContent += ' alert-danger">';
+      } else if (level && level === 'success') {
+        msgContent += ' alert-success">';
+      }
+      msgContent += '<button type="button" class="close" data-dismiss="alert">&times;</button>';
+      msgContent += msg;
+      msgContent += '</div>';
+      return msgContent;
+    }
+    </script>
+  </body>
+</html>
