@@ -115,7 +115,7 @@ done
 # CONFIGURATION                                                                #
 ################################################################################
 
-DOMAIN="52.174.149.59.nip.io"
+DOMAIN=""
 PRJ_CI=("fabric" "CI/CD Fabric" "CI/CD Components (Jenkins, Gogs, etc)")
 GOGS_ROUTE="gogs-${PRJ_CI[0]}.$DOMAIN"
 
@@ -156,6 +156,12 @@ function wait_while_empty() {
 
 function provision_msa_store() {
   echo_header "Deploying MSA Store demo..."
+
+  # hack for getting default domain for routes.
+  if [ "x$DOMAIN" = "x" ]; then
+    DOMAIN=$(oc get route docker-registry -o template --template='{{.spec.host}}' -n default | sed "s/docker-registry-default.//g")
+    GOGS_ROUTE="gogs-${PRJ_CI[0]}.$DOMAIN"
+  fi
 
   # add admin user
   _RETURN=$(curl -o /dev/null -sL --post302 -w "%{http_code}" http://$GOGS_ROUTE/user/sign_up \
