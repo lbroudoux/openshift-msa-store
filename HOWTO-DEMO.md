@@ -13,7 +13,7 @@ _Warning:_ The source code you've retrieved by cloning this repository will be i
 
 ### Mandatory: Software factory
 
-This demonstration implies the use of embedded Source code repository and Jenkins instance for running CI/CD pipelines. We are using a utility script that povides everything for us. This script is called `create-fabrique.sh` and can be found on this [GitHub repo](https://github.com/lbroudoux/openshift-cases/tree/master/software-factory).
+This demonstration implies the use of embedded Source code repository and Jenkins instance for running CI/CD pipelines. We are using a utility script that provides everything for us. This script is called `create-fabrique.sh` and can be found on this [GitHub repo](https://github.com/lbroudoux/openshift-cases/tree/master/software-factory).
 
 So start by cloning the GitHub repo, go to the `software-factory` subfolder, just `oc login` to your OpenShift environment and from the terminal execute the following :
 
@@ -69,7 +69,7 @@ Before going further, we need to import our component sources into the Gogs inst
 sh provision-demo.sh deploy msa-store
 ```
 
-4 repositories have now been imported into your running Gogs instance. You may use user `team` with password `team` to control that everything is ok and access the web interface. Repsoitories are public, that means that you will not nedd any credentials for accessing them from OpenShift. Be sure do deploy all the coming components into the `msa-store-dev` namespace. New OCP 3.7 GUI is tricky and may replace you onto another default project.
+4 repositories have now been imported into your running Gogs instance. You may use user `team` with password `team` to control that everything is ok and access the web interface. Repsoitories are public, that means that you will not need any credentials for accessing them from OpenShift. Be sure do deploy all the coming components into the `msa-store-dev` namespace. New OCP 3.7 GUI is tricky and may replace you onto another default project.
 
 ### Infrastructure component: JBoss AMQ
 
@@ -106,7 +106,7 @@ After some time, you should have all the components along side the JBoss AMQ bro
 
 ### Test
 
-It's now time to check and see that everyhting is running, so get the route that was created on the `shop-ui` component and open it into a brower. Also, be sure to get the hostname for `order-service` because our UI will need it for calling the service REST API. This should normmally be something like `order-service-msa-store-dev.apps.example.com` where you replace domain by yours. Copy/paste this hostname in input field on top rigt of the shop ui, clcik outside of input and place some orders. Only the 1st Shadow man t-shirt should be available within inventory.
+It's now time to check and see that everything is running, so get the route that was created on the `shop-ui` component and open it into a browser. Also, be sure to get the hostname for `order-service` because our UI will need it for calling the service REST API. This should normally be something like `order-service-msa-store-dev.apps.example.com` where you replace domain by yours. Copy/paste this hostname in input field on top right of the shop ui, click outside of input and place some orders. Only the 1st Shadow man t-shirt should be available within inventory.
 
 ![shop-ui](https://raw.githubusercontent.com/lbroudoux/openshift-msa-store/master/assets/shop-ui.png)
 
@@ -139,7 +139,7 @@ You should achieve this kind of result:
 
 ## Production environment deployment
 
-Now it's time to wonder how to put everything we did into production... Gonna do all this manual deployment once again? Clearly no, it's not the philosophy behind immutable containers! So we start by creating a new environment and use the provisionning script to prepare all the objects we'll need for deployment.
+Now it's time to wonder how to put everything we did into production... Gonna do all this manual deployment once again? Clearly no, it's not the philosophy behind immutable containers! So we start by creating a new environment and use the provisioning script to prepare all the objects we'll need for deployment.
 
 Let execute the script after having `oc login` to the OpenShift cluster:
 
@@ -148,7 +148,7 @@ oc new-project msa-store-prod --display-name="MSA Store (PROD)"
 sh provision-demo.sh deploy msa-store-prod
 ```
 
-Once finished, we can browse the newly created porject and check that all Deployment Config object have been created and that they're cleraly referencing the Image Stream from Dev environment with a specific `promoteToProd` tag. It is time to explain the promotion logic of containers from environment to environment.
+Once finished, we can browse the newly created project and check that all Deployment Config object have been created and that they're clearly referencing the Image Stream from Dev environment with a specific `promoteToProd` tag. It is time to explain the promotion logic of containers from environment to environment.
 
 Do not forget to also add the `JBoss A-MQ 6.3 (no ssl)` component like we did into development environment using an `admin/admin` username/password combination.
 
@@ -164,13 +164,13 @@ Once deplouments are OK, the application should now be available onto production
 
 Finally, how to automate deployment, testing and promotion of each new changes made to code source? The previous script has also created a CI/CD pipeline configuration for the `inventory-service` component. In order to illustrate it, you can simulate a simple change within the component source code.
 
-For now, only the first t-shirt of our product catalogue is available into inventory. Let say that we have received new items for the third t-shirt. Connect to the Gogs repository URL and locate the `app.js` file within `inventory-service` repository. And do a simple addition on line conditionning the response returned to `order-service`. You may add this simple OR condition and save/commit the file.
+For now, only the first t-shirt of our product catalogue is available into inventory. Let say that we have received new items for the third t-shirt. Connect to the Gogs repository URL and locate the `app.js` file within `inventory-service` repository. And do a simple addition on line conditioning the response returned to `order-service`. You may add this simple OR condition and save/commit the file.
 
 ```
 || req.params.productId === "3"
 ```
 
-After that, just go to the `fabric` project and within the _Builds > Pipelines_ section of web console, start the new `inventory-service-pipeline` pipeline. You shoud end up with the following executed pipeline and should be able to experiment the committed change.
+After that, just go to the `fabric` project and within the _Builds > Pipelines_ section of web console, start the new `inventory-service-pipeline` pipeline. You should end up with the following executed pipeline and should be able to experiment the committed change.
 
 ![inventory-service-pipeline](https://raw.githubusercontent.com/lbroudoux/openshift-msa-store/master/assets/inventory-service-pipeline.png)
 
