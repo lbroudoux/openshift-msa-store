@@ -57,7 +57,7 @@ After few minutes, you should have everything running on your cluster. Before st
 
 ## Development environment deployment
 
-On your OpenShift cluster instance, start by creating a new project that will host all the components for the development environment. You can do so via the web console or the command line interface. 
+On your OpenShift cluster instance, start by creating a new project that will host all the components for the development environment. You can do so via the web console or the command line interface.
 
 ```
 oc new-project msa-store-dev --display-name="MSA Store (DEV)"
@@ -113,7 +113,7 @@ It's now time to check and see that everyhting is running, so get the route that
 
 ## Monitoring stuffs for microservices
 
-This is an optional part. In pre-requisites, you may have installed (or not) the monitoring infrastructure. 
+This is an optional part. In pre-requisites, you may have installed (or not) the monitoring infrastructure.
 
 Having the application now deployed is a good event for having a discussion about monitoring in a distributed world. How do you ensure that everything is running and that components talk to each other in the expected way? You may want to use distributed tracing for that! Red Hat (through its CNCF contribution) supports Open Tracing standard and Jaeger is the implementation that can be easily deployed in OpenShift.
 
@@ -130,7 +130,7 @@ Second part of monitoring stuffs is about enabling Prometheus metrics scraping a
 
 Now you should be able to visualize the default dashboard displaying the OpenShift cluster health as well as creating a new dashboard for our specific MSA Store application. Exemple for such a dashboard is provided within the [msa-store-grafana-dashboard.json](https://raw.githubusercontent.com/lbroudoux/openshift-msa-store/master/msa-store-grafana-dashboard.json) file.
 
-You should achieve this kind of result: 
+You should achieve this kind of result:
  * A 1st chart displaying the JVM Heap Size for the 2 Java components,
  * A 2nd chart displaying processing time of messages within the 2 Java components.
 
@@ -167,7 +167,7 @@ Finally, how to automate deployment, testing and promotion of each new changes m
 For now, only the first t-shirt of our product catalogue is available into inventory. Let say that we have received new items for the third t-shirt. Connect to the Gogs repository URL and locate the `app.js` file within `inventory-service` repository. And do a simple addition on line conditionning the response returned to `order-service`. You may add this simple OR condition and save/commit the file.
 
 ```
-|| request.params.productId === "3"
+|| req.params.productId === "3"
 ```
 
 After that, just go to the `fabric` project and within the _Builds > Pipelines_ section of web console, start the new `inventory-service-pipeline` pipeline. You shoud end up with the following executed pipeline and should be able to experiment the committed change.
