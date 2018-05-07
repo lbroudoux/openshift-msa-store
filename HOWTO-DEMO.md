@@ -9,7 +9,7 @@ This demonstration involves having all the components sources and configuration 
 git clone https://github.com/lbroudoux/openshift-msa-store.git
 ```
 
-_Warning:_ The source code you've retrieved by cloning this repository will be integrated into another Git repository during demonstration. You will also use local copy for illustrating OpenShift binary builds using Maven. So be careful of cleaning all the temporaray files before running this demonstration once again. You should go to `order-service` and `shipping-service` sub-directories and run `mvn clean` before starting again.
+_Warning:_ The source code you've retrieved by cloning this repository will be integrated into another Git repository during demonstration. You will also use local copy for illustrating OpenShift binary builds using Maven. So be careful of cleaning all the temporary files before running this demonstration once again. You should go to `order-service` and `shipping-service` sub-directories and run `mvn clean` before starting again.
 
 ### Mandatory: Software factory
 
@@ -21,7 +21,7 @@ So start by cloning the GitHub repo, go to the `software-factory` subfolder, jus
 sh create-fabrique.sh
 ```
 
-This should start the installation process of Gogs as Source code repository, Jenkins as CI/CD orchestrator and Nexus as an artififact manager/proxy:
+This should start the installation process of Gogs as Source code repository, Jenkins as CI/CD orchestrator and Nexus as an artifact manager/proxy:
 
 ```
 ########################################################################
@@ -35,7 +35,7 @@ After few minutes, you should have everything running on your cluster.
 
 ### Optional: Monitoring cockpit
 
-In this demonstration, you may want to show some monitoring features of microservices architecture like distributed tracing or centralized monitoring. If you want to, you may install such an infrastructure. We are using a utility script that povides everything for us. This script is called `create-cockpit.sh` and can be found on this [GitHub repo](https://github.com/lbroudoux/openshift-cases/tree/master/monitoring-cockpit).
+In this demonstration, you may want to show some monitoring features of microservices architecture like distributed tracing or centralized monitoring. If you want to, you may install such an infrastructure. We are using a utility script that provides everything for us. This script is called `create-cockpit.sh` and can be found on this [GitHub repo](https://github.com/lbroudoux/openshift-cases/tree/master/monitoring-cockpit).
 
 So start by cloning the GitHub repo, go to the `monitoring-cockpit` subfolder, just `oc login` to your OpenShift environment and from the terminal execute the following :
 ```
@@ -175,3 +175,111 @@ After that, just go to the `fabric` project and within the _Builds > Pipelines_ 
 ![inventory-service-pipeline](https://raw.githubusercontent.com/lbroudoux/openshift-msa-store/master/assets/inventory-service-pipeline.png)
 
 ## Some more demo ideas or variations
+
+### Monitoring health
+
+When building microservices, monitoring becomes of extreme importance to make sure all services are running at all times, and when they don’t there are automatic actions triggered to rectify the issues.
+
+OpenShift, using Kubernetes health probes, offers a solution for monitoring application health and try to automatically heal faulty containers through restarting them to fix issues such as a deadlock in the application which can be resolved by restarting the container. Restarting a container in such a state can help to make the application more available despite bugs.
+
+Furthermore, there are of course a category of issues that can’t be resolved by restarting the container. In those scenarios, OpenShift would remove the faulty container from the built-in load-balancer and send traffic only to the healthy container remained.
+
+There are two type of health probes available in OpenShift: liveness probes and readiness probes. Liveness probes are to know when to restart a container and readiness probes to know when a Container is ready to start accepting traffic.
+
+Health probes also provide crucial benefits when automating deployments with practices like rolling updates in order to remove downtime during deployments. A readiness health probe would signal OpenShift when to switch traffic from the old version of the container to the new version so that the users don’t get affected during deployments.
+
+#### Explore Health REST Endpoints
+
+Spring Boot Actuator is a sub-project of Spring Boot which adds health and management HTTP endpoints to the application. Enabling Spring Boot Actuator is done via adding `org.springframework.boot:spring-boot-starter-actuator` dependency to the Maven project dependencies which is already done for the Catalog services.
+
+```
+$ oc rsh order-service-1-tbwq5
+sh-4.2$ curl http://localhost:8081/health
+{"status":"UP","camel":{"status":"UP","version":"2.19.0","contextStatus":"Started"},"jms":{"status":"UP","jmsConnectionFactory":{"status":"UP","provider":"ActiveMQ"},"pooledConnectionFactory":{"status":"UP","provider":"ActiveMQ"}},"diskSpace":{"status":"UP","total":10718543872,"free":10169016320,"threshold":10485760}}
+sh-4.2$
+```
+
+Probes are automatically registred by the Maven Fabric8 plugin. You can check this on getting the details of DeploymentConfig for `order-service`.
+
+```
+oc describe dc/order-service
+[...]
+    Liveness:	http-get http://:8081/health delay=180s timeout=1s period=10s #success=1 #failure=3
+    Readiness:	http-get http://:8081/health delay=10s timeout=1s period=10s #success=1 #failure=3
+[...]
+```
+
+#### Monitoring Shop UI Health
+
+Although you can add the liveness and health probes to the Web UI using a single CLI command, let’s give the OpenShift Web Console a try this time.
+
+Go the OpenShift Web Console in your browser and in the MSA project. Click on __Applications__ » __Deployments__ on the left-side bar. Click on `shop-ui` and then the __Configuration__ tab. You will see the warning about health checks, with a link to click in order to add them. Click __Add health checks__ now.
+
+Readiness Probe
+* Path: /
+* Initial Delay: 10
+* Timeout: 1
+
+Liveness Probe
+* Path: /
+* Initial Delay: 180
+* Timeout: 1
+
+```
+$ oc set probe dc/shop-ui --liveness--get-url=http://:8080 --initial-delay-seconds=20 --timeout-seconds=1
+$ oc set probe dc/shop-ui --readiness --get-url=http://:8080 --initial-delay-seconds=10 --timeout-seconds=1
+```
+
+### Service resilience and fault tolerance
+
+#### Scaling up applications
+
+Applications capacity for serving clients is bounded by the amount of computing power allocated to them and although it’s possible to increase the computing power per instance, it’s far easier to keep the application instances within reasonable sizes and instead add more instances to increase serving capacity. Traditionally, due to the stateful nature of most monolithic applications, increasing capacity had been achieved via scaling up the application server and the underlying virtual or physical machine by adding more cpu and memory (vertical scaling). Cloud-native apps however are stateless and can be easily scaled up by spinning up more application instances and load-balancing requests between those instances (horizontal scaling).
+
+Now, let’s use the `oc scale` command to scale up the `shop-ui` component.
+
+```
+$ oc scale dc/shop-ui --replicas=2
+```
+
+You can verify that the new pod is added to the load balancer by checking the details of the `shop-ui` Service:
+
+```
+$ oc describe svc/shop-ui
+[...]
+Endpoints:              10.129.0.146:8080,10.129.0.232:8080
+[...]
+```
+
+Get back to normal configuration:
+
+```
+$ oc scale dc/shop-ui --replicas=1
+```
+
+
+#### Scaling applications on auto-pilot
+
+Although scaling up and scaling down pods are automated and easy using OpenShift, however it still requires a person or a system to run a command or invoke an API call (to OpenShift REST API. Yup! there is a REST API for all OpenShift operations) to scale the applications. That in turn needs to be in response to some sort of increase to the application load and therefore the person or the system needs to be aware of how much load the application is handling at all times to make the scaling decision.
+
+OpenShift automates this aspect of scaling as well via automatically scaling the application pods up and down within a specified min and max boundary based on the container metrics such as cpu and memory consumption. In that case, if there is a surge of users visiting the MSA online shop due to holiday season coming up or a good deal on a product, OpenShift would automatically add more pods to handle the increase load on the application and after the load goes, the application is automatically scaled down to free up compute resources.
+
+In order the define auto-scaling for a pod, we should first define how much cpu and memory a pod is allowed to consume which will act as a guideline for OpenShift to know when to scale the pod up or down. Since the deployment config starts the application pods, the application pod resource (cpu and memory) containers should also be defined on the deployment config.
+
+```
+$ oc set resources dc/shop-ui --limits=cpu=400m,memory=512Mi --requests=cpu=200m,memory=256Mi
+```
+
+The pods get restarted automatically setting the new resource limits in effect. Now you can define an autoscaler using `oc autoscale` command to scale the Web UI pods up to 5 instances whenever the CPU consumption passes 25% utilization:
+
+```
+$ oc autoscale dc/web --min 1 --max 5 --cpu-percent=25
+```
+
+All set! Now the Web UI can scale automatically to multiple instances if the load on the CoolStore online store increases. You can verify that using for example `ab`, the Apache HTTP server benchmarking tool. Let’s deploy the ab container image from Docker Hub and generate some load on the Web UI. Since we want to run this container only once and after it runs it’s not needed anymore, use the `oc run --rm command` to run the container and throw it away after it’s done running:
+
+```
+$ oc run web-load --rm --attach --restart='Never' --image=jordi/ab -- -n 80000 -c 20 http://shop-ui:8080/
+```
+
+#### Self-healing failed application pods
